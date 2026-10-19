@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mediturnos
+      POSTGRES_USER: mediturnos
+      POSTGRES_PASSWORD: mediturnos_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - mediturnos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediturnos -d mediturnos"]
+      interval: 5s
+      retries: 10
+volumes:
+  mediturnos_pgdata:

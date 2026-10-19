@@ -9,9 +9,7 @@ import Link from "next/link";
 
 import Sidebar from "@/components/Sidebar";
 
-import {
-    obtenerPacientes
-} from "@/lib/storage";
+import { consultarPacientes } from "@/lib/pacientes-api";
 
 
 const API_URL =
@@ -41,9 +39,7 @@ export default function Pacientes() {
 
     useEffect(() => {
 
-        setPacientes(
-            obtenerPacientes()
-        );
+        consultarPacientes().then(setPacientes).catch(error => alert(error.message));
 
     }, []);
 

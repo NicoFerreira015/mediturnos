@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Paciente {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  cedula          String   @unique
+  telefono        String
+  correo          String
+  fechaNacimiento String?  // YYYY-MM-DD; optional as in original form
+  direccion       String? 
+  turnos          Turno[]
+  creadoEn        DateTime @default(now())
+}
+
+model Profesional {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  especialidad String
+  turnos       Turno[]
+}
+
+model Turno {
+  id            Int         @id @default(autoincrement())
+  pacienteId    Int
+  profesionalId Int
+  fecha         String      // YYYY-MM-DD avoids timezone displacement
+  hora          String      // HH:mm
+  estado        String      @default("Pendiente")
+  paciente      Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Restrict)
+  profesional   Profesional @relation(fields: [profesionalId], references: [id], onDelete: Restrict)
+  creadoEn      DateTime    @default(now())
+  @@index([fecha, profesionalId])
+}

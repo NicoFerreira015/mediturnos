@@ -6,10 +6,7 @@ import { useRouter } from "next/navigation";
 
 import Sidebar from "@/components/Sidebar";
 
-import {
-    existeCedula,
-    guardarPaciente
-} from "@/lib/storage";
+import { consultarPacientes, registrarPaciente } from "@/lib/pacientes-api";
 
 
 export default function NuevoPaciente() {
@@ -45,6 +42,7 @@ export default function NuevoPaciente() {
 
     const [errores, setErrores] =
         useState({});
+    const [guardando, setGuardando] = useState(false);
 
 
     /*
@@ -144,15 +142,6 @@ export default function NuevoPaciente() {
 
             nuevosErrores.cedula =
                 "Ingrese una cédula válida.";
-
-        } else if (
-            existeCedula(
-                form.cedula
-            )
-        ) {
-
-            nuevosErrores.cedula =
-                "Ya existe un paciente registrado con esta cédula.";
 
         }
 
@@ -267,7 +256,7 @@ export default function NuevoPaciente() {
     |--------------------------------------------------------------------------
     */
 
-    const handleSubmit = (
+    const handleSubmit = async (
         e
     ) => {
 
@@ -282,7 +271,10 @@ export default function NuevoPaciente() {
         }
 
 
-        guardarPaciente({
+        if (guardando) return;
+        setGuardando(true);
+        try {
+        await registrarPaciente({
 
             nombre:
                 form.nombre.trim(),
@@ -315,6 +307,11 @@ export default function NuevoPaciente() {
         router.push(
             "/pacientes"
         );
+        } catch (error) {
+            setErrores(prev => ({ ...prev, cedula: error.message }));
+        } finally {
+            setGuardando(false);
+        }
     };
 
 

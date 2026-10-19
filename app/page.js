@@ -10,9 +10,7 @@ import Link from "next/link";
 
 import Sidebar from "@/components/Sidebar";
 
-import {
-    obtenerTurnos
-} from "@/lib/storage";
+import { consultarTurnos } from "@/lib/turnos-api";
 
 
 export default function Home() {
@@ -29,9 +27,7 @@ export default function Home() {
 
     useEffect(() => {
 
-        setTurnos(
-            obtenerTurnos()
-        );
+        consultarTurnos().then(setTurnos).catch(error => console.error(error));
 
     }, []);
 

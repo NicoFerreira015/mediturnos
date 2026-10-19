@@ -15,12 +15,10 @@ import {
 import Sidebar from "@/components/Sidebar";
 
 import {
-    obtenerPacientes,
-    profesionales,
-    horariosDisponibles,
-    horarioEstaOcupado,
-    guardarTurno
+    horariosDisponibles
 } from "@/lib/storage";
+import { consultarTurnos, registrarTurno, estaOcupadoEnLista } from "@/lib/turnos-api";
+import { consultarPacientes } from "@/lib/pacientes-api";
 
 
 export default function NuevoTurno() {
@@ -37,6 +35,7 @@ export default function NuevoTurno() {
 
     const [pacientes, setPacientes] =
         useState([]);
+    const [profesionales, setProfesionales] = useState([]);
 
 
     const [pacienteId, setPacienteId] =
@@ -60,6 +59,10 @@ export default function NuevoTurno() {
 
     const [errores, setErrores] =
         useState({});
+
+    const [turnosServidor, setTurnosServidor] = useState([]);
+    const [cargandoTurnos, setCargandoTurnos] = useState(true);
+    const [guardando, setGuardando] = useState(false);
 
 
     /*
@@ -114,10 +117,15 @@ export default function NuevoTurno() {
 
     useEffect(() => {
 
-        setPacientes(
-            obtenerPacientes()
-        );
+        consultarPacientes().then(setPacientes).catch(error => alert(error.message));
+        fetch("/api/profesionales", { cache: "no-store" })
+          .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d.profesionales; })
+          .then(setProfesionales).catch(error => alert(error.message));
 
+    }, []);
+
+    useEffect(() => {
+        consultarTurnos().then(setTurnosServidor).catch(error => alert(error.message)).finally(() => setCargandoTurnos(false));
     }, []);
 
 
@@ -225,7 +233,8 @@ export default function NuevoTurno() {
          * un horario ocupado.
          */
         if (
-            horarioEstaOcupado(
+            estaOcupadoEnLista(
+                turnosServidor,
                 profesionalId,
                 fecha,
                 horario
@@ -323,7 +332,8 @@ export default function NuevoTurno() {
             &&
             hora
             &&
-            horarioEstaOcupado(
+            estaOcupadoEnLista(
+                turnosServidor,
                 profesionalId,
                 fecha,
                 hora
@@ -355,58 +365,26 @@ export default function NuevoTurno() {
     |--------------------------------------------------------------------------
     */
 
-    const confirmarTurno = () => {
-
-        if (
-            !validar()
-        ) {
-
-            return;
+    const confirmarTurno = async () => {
+        if (!validar() || !pacienteSeleccionado || !profesionalSeleccionado || guardando || cargandoTurnos) return;
+        setGuardando(true);
+        try {
+            await registrarTurno({
+                pacienteId: pacienteSeleccionado.id,
+                paciente: pacienteSeleccionado.nombre,
+                profesionalId: profesionalSeleccionado.id,
+                profesional: profesionalSeleccionado.nombre,
+                especialidad: profesionalSeleccionado.especialidad,
+                fecha, hora
+            });
+            alert("Turno registrado correctamente. El turno quedó Pendiente.");
+            router.push("/turnos");
+        } catch (error) {
+            setErrores(prev => ({ ...prev, hora: error.message }));
+            try { setTurnosServidor(await consultarTurnos()); } catch {}
+        } finally {
+            setGuardando(false);
         }
-
-
-        if (
-            !pacienteSeleccionado
-            ||
-            !profesionalSeleccionado
-        ) {
-
-            return;
-        }
-
-
-        guardarTurno({
-
-            pacienteId:
-                pacienteSeleccionado.id,
-
-            paciente:
-                pacienteSeleccionado.nombre,
-
-            profesionalId:
-                profesionalSeleccionado.id,
-
-            profesional:
-                profesionalSeleccionado.nombre,
-
-            especialidad:
-                profesionalSeleccionado.especialidad,
-
-            fecha,
-
-            hora
-
-        });
-
-
-        alert(
-            "Turno registrado correctamente. El turno quedó Pendiente."
-        );
-
-
-        router.push(
-            "/turnos"
-        );
     };
 
 
@@ -770,11 +748,14 @@ export default function NuevoTurno() {
                                                  * los horarios.
                                                  */
                                                 const ocupado =
+                                                    cargandoTurnos
+                                                    ||
                                                     !profesionalId
                                                     ||
                                                     !fecha
                                                     ||
-                                                    horarioEstaOcupado(
+                                                    estaOcupadoEnLista(
+                turnosServidor,
                                                         profesionalId,
                                                         fecha,
                                                         horario

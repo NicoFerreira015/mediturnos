@@ -10,10 +10,7 @@ import Link from "next/link";
 
 import Sidebar from "@/components/Sidebar";
 
-import {
-    obtenerTurnos,
-    actualizarEstadoTurno
-} from "@/lib/storage";
+import { consultarTurnos, modificarEstadoTurno } from "@/lib/turnos-api";
 
 
 export default function Turnos() {
@@ -32,28 +29,18 @@ export default function Turnos() {
 
     useEffect(() => {
 
-        setTurnos(
-            obtenerTurnos()
-        );
+        consultarTurnos().then(setTurnos).catch(error => alert(error.message));
 
     }, []);
 
 
-    const cambiarEstado = (
-        id,
-        estado
-    ) => {
-
-        const nuevosTurnos =
-            actualizarEstadoTurno(
-                id,
-                estado
-            );
-
-
-        setTurnos(
-            nuevosTurnos
-        );
+    const cambiarEstado = async (id, estado) => {
+        try {
+            await modificarEstadoTurno(id, estado);
+            setTurnos(await consultarTurnos());
+        } catch (error) {
+            alert(error.message);
+        }
     };
 
 
